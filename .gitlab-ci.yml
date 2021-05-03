@@ -1,0 +1,183 @@
+# variables:
+#   DOCKER_REGISTRY: 603692555054.dkr.ecr.eu-central-1.amazonaws.com
+#   AWS_DEFAULT_REGION: eu-central-1
+#   APP_NAME: philiploans-webapp
+#   S3_BUCKET_NAME: 'philips-webapp'
+#   DOCKER_HOST: tcp://docker:2375
+#   ENV_NAME: 'Philipsloans-env'
+#   APPLICATION_NAME: 'philips-loans'
+# stages:
+#   - build
+#   - test
+#   - docker-build
+#   - writeToDockerrun
+#   - deploy
+
+# build:
+#   stage: build
+#   image: node
+#   script: 
+#     - echo "Start building App"
+#     - npm install
+#     - npm run build
+#     - echo "Build successfully!"
+#   artifacts:
+#     expire_in: 1 hour
+#     paths:
+#       - build
+#       - node_modules/
+#   only:
+#   - master
+ 
+# test:
+#   stage: test
+#   image: node
+#   script:
+#     - echo "Testing App"
+#     - sleep 2
+#     - echo "Test successfully!"
+#   only:
+#   - master
+
+# docker-build:
+#   stage: docker-build
+#   image: 
+#     name: amazon/aws-cli
+#     entrypoint: [""]
+#   services:
+#     - docker:dind
+#   before_script:
+#     - amazon-linux-extras install docker
+#     - aws --version
+#     - docker --version
+#     - CI=false
+#   script:
+#     - docker build -t $DOCKER_REGISTRY/$APP_NAME:$CI_PIPELINE_IID . 
+#     - aws ecr get-login-password | docker login --username AWS --password-stdin $DOCKER_REGISTRY
+#     - docker push $DOCKER_REGISTRY/$APP_NAME:$CI_PIPELINE_IID
+#   only:
+#   - master
+
+# writeToDockerrun:
+#   stage: writeToDockerrun
+#   image: python:latest
+#   script:
+#   - pip install awscli
+#   - sh scripts/utils/writeToDockerrun.bash $CI_PIPELINE_IID
+#   - aws s3 cp Dockerrun.aws.json s3://$S3_BUCKET_NAME/$CI_PIPELINE_IID
+#   only:
+#   - master
+
+# deploy:
+#   stage: deploy
+#   image: python:latest
+#   before_script:
+#     - echo "deploying app"
+#   script:
+#     - pip install awscli
+#     - aws elasticbeanstalk create-application-version --application-name $APPLICATION_NAME --version-label $CI_PIPELINE_IID --source-bundle S3Bucket=$S3_BUCKET_NAME,S3Key=$CI_PIPELINE_IID --region $AWS_DEFAULT_REGION
+#     - aws elasticbeanstalk update-environment --application-name $APPLICATION_NAME --environment-name $ENV_NAME --version-label $CI_PIPELINE_IID  --region $AWS_DEFAULT_REGION
+#     - echo "Deploy finish"'
+#   only:
+#   - master
+  
+# # variables:
+# #   DOCKER_REGISTRY: 603692555054.dkr.ecr.eu-central-1.amazonaws.com
+# #   AWS_DEFAULT_REGION: eu-central-1
+# #   APP_NAME: philiploans-webapp
+# #   DOCKER_HOST: tcp://docker:2375
+
+# # stages:
+# #   - test 
+# #   - build
+# #   - deploy
+# #   - publish
+
+# # test:
+# #   stage: test
+# #   script:
+# #     - echo "Testing..."
+# #   only:
+# #     - master
+
+# # build:
+# #   image: node:12.14.1
+# #   script:
+# #     - npm install
+
+# # deploy:
+# #   image: 
+# #     name: amazon/aws-cli
+# #     entrypoint: [""]
+# #   services:
+# #     - docker:dind
+# #     - node:12.14.1
+# #   before_script:
+# #     - amazon-linux-extras install docker
+# #     - aws --version
+# #     - docker --version
+# #   stage: deploy
+# #   script:
+# #     - docker build -t $DOCKER_REGISTRY/$APP_NAME:$CI_PIPELINE_IID . 
+# #     - aws ecr get-login-password | docker login --username AWS --password-stdin $DOCKER_REGISTRY
+# #     - docker push $DOCKER_REGISTRY/$APP_NAME:$CI_PIPELINE_IID
+# #   only:
+# #     - master
+
+# # publish:
+# #  stage: publish
+# #  script:
+# #     - echo "publish..."
+# #  only:
+# #     - master
+
+# # # image: docker:latest
+
+# # # variables:
+# # #   S3_BUCKET_NAME: "philips-webapp"
+# # #   REPOSITORY_URL: 603692555054.dkr.ecr.eu-central-1.amazonaws.com/philiploans-webapp
+# # #   REGION: eu-central-1
+# # #   TASK_DEFINTION_NAME: <TASK DEFINITION NAME>
+# # #   CLUSTER_NAME: <CLUSTER NAME>
+# # #   SERVICE_NAME: <SERVICE NAME>
+# # #   versiontag: ''
+# # #   imageSuffix: ''
+
+# # # services:
+# # # - docker:dind
+
+# # # before_script:
+# # #   - apk add --no-cache curl jq python py-pip
+# # #   - pip install awscli
+# # #   - $(aws ecr get-login --no-include-email --region "${REGION}")
+# # #   - IMAGE_TAG="$(echo $CI_COMMIT_SHA | head -c 8)"
+
+# # # stages:
+# # #   - build
+# # #   - deploy
+
+# # # build:
+# # #   stage: build
+# # #   script:
+# # #     - echo "Building image..."
+# # #     - docker build -t $REPOSITORY_URL:latest .
+# # #     - echo "Tagging image..."
+# # #     - docker tag $REPOSITORY_URL:latest $REPOSITORY_URL:$IMAGE_TAG
+# # #     - echo "Pushing image..."
+# # #     - docker push $REPOSITORY_URL:latest
+# # #     - docker push $REPOSITORY_URL:$IMAGE_TAG
+# # #   only:
+# # #     - master
+
+# # # # deploy:
+# # # #   stage: deploy
+# # # #   script:
+# # # #     - echo $REPOSITORY_URL:$IMAGE_TAG
+# # # #     - TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition "$TASK_DEFINTION_NAME" --region "${REGION}")
+# # # #     - NEW_CONTAINER_DEFINTIION=$(echo $TASK_DEFINITION | python $CI_PROJECT_DIR/update_task_definition_image.py $REPOSITORY_URL:$IMAGE_TAG)
+# # # #     - echo "Registering new container definition..."
+# # # #     - aws ecs register-task-definition --region "${REGION}" --family "${TASK_DEFINTION_NAME}" --container-definitions "${NEW_CONTAINER_DEFINTIION}"
+# # # #     - echo "Updating the service..."
+# # # #     - aws ecs update-service --region "${REGION}" --cluster "${CLUSTER_NAME}" --service "${SERVICE_NAME}"  --task-definition "${TASK_DEFINTION_NAME}"
+# # # #   only:
+# # # #     - master
